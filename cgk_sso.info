@@ -1,0 +1,5 @@
+name = Cegeka Single Sign On
+description = This module wil enable single sign on for a multidomain website on the same server without using a broker server
+core = 7.x
+version = 7.x-0.1
+package = "CGK"
