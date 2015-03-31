@@ -1,5 +1,43 @@
 <?php
 /**
-* @file
-* A description of what your module does.
-*/
+ * @file
+ * A description of what your module does.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function cgk_sso_menu() {
+  $items['cgk/sso/login'] = array(
+    'page callback' => 'cgk_sso_login',
+    'access arguments' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+}
+/**
+ * Implements hook_user_login().
+ */
+function cgk_sso_user_login(&$edit, $account) {
+  // Create a token.
+  // Send the token request to all other domains to log them in.
+  send_login();
+}
+
+function send_login() {
+  $domains = array();
+  foreach ($domains as $domain) {
+    // If the domain is not the current domain, send the request.
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, $domain);
+    curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE);
+    curl_setopt($ch, CURLOPT_TIMEOUT_MS, 1);
+
+    curl_exec($ch);
+    curl_close($ch);
+  }
+}
+
+function cgk_sso_login(){
+
+}
