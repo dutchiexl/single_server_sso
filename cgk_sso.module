@@ -27,25 +27,27 @@ function cgk_sso_user_login(&$edit, $account) {
 
 function send_login($account) {
   // Load the asynchronous library.
-
   module_load_include('inc', 'cgk_sso', 'Helpers/AsyncRequest');
+
   $callback_path = "cgk/sso/login";
   $current_domain = domain_get_domain();
   $all_domains = domain_domains();
 
+  // The login urls to the other domains.
   $call_urls = array();
   foreach ($all_domains as $domain) {
     // If the domain is not the current domain, send the request.
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
       $call_urls[] = $domain_path . $callback_path;
-      $request_handler = new AsyncRequest();
-      $callback = function ($data, $info) {
-        watchdog('SSO', $data . " | " . $info);
-      };
-      $request_handler->process($call_urls, $callback);
     }
   }
+
+  // Make the requests to the other domains.
+  $request_handler = new AsyncRequest();
+  $callback = function ($data, $info) {
+  };
+  $request_handler->process($call_urls, $callback);
 }
 
 function cgk_sso_login() {
