@@ -39,7 +39,7 @@ function send_login($account) {
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
       $call_urls[] = $domain_path . $callback_path;
-      $request_handler = new AsyncRequests();
+      $request_handler = new AsyncRequest();
       $callback = function ($data, $info) {
         watchdog('SSO', $data . " | " . $info);
       };
