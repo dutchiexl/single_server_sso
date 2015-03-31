@@ -26,22 +26,24 @@ function cgk_sso_user_login(&$edit, $account) {
 }
 
 function send_login($account) {
-  $callback = "cgk/sso/login";
+  // Load the asynchronous library.
+
+  module_load_include('inc', 'cgk_sso', 'Helpers/AsyncRequest');
+  $callback_path = "cgk/sso/login";
   $current_domain = domain_get_domain();
   $all_domains = domain_domains();
+
+  $call_urls = array();
   foreach ($all_domains as $domain) {
     // If the domain is not the current domain, send the request.
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $domain_path . $callback);
-      curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE);
-      curl_setopt($ch, CURLOPT_TIMEOUT_MS, 1);
-      if (curl_exec($ch) === FALSE) {
-        watchdog('Cegeka SSO', 'An error occured during the login trough SSO:' . curl_error($ch));
-      }
-      curl_close($ch);
+      $call_urls[] = $domain_path . $callback_path;
+      $request_handler = new AsyncRequests();
+      $callback = function ($data, $info) {
+        watchdog('SSO', $data . " | " . $info);
+      };
+      $request_handler->process($call_urls, $callback);
     }
   }
 }
