@@ -24,7 +24,11 @@ function cgk_sso_user_login(&$edit, $account) {
   // Send the token request to all other domains to log them in.
   //send_login($account);
   global $user;
-  $user->sso_login = TRUE;
+  $sso_record = new stdClass();
+  $sso_record->status = "pending_sso_login";
+  $sso_record->created = time();
+  $sso_record->changed = time();
+  drupal_write_record('cgk_sso', $sso_record);
 }
 
 function send_login($account) {
