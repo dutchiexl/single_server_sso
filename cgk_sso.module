@@ -8,8 +8,9 @@
  * Implements hook_menu().
  */
 function cgk_sso_menu() {
-  $items['cgk/sso/login'] = array(
+  $items['cgk/sso/login/%uid/%token'] = array(
     'page callback' => 'cgk_sso_login',
+    'page_arguments' => array(2, 3),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
@@ -74,6 +75,23 @@ function cgk_sso_login() {
   user_login_finalize($login_array);
 }
 
+function _get_callback_urls(){
+  $callback_path = "cgk/sso/login";
+  $current_domain = domain_get_domain();
+  $all_domains = domain_domains();
+
+  // The login urls to the other domains.
+  $call_urls = array();
+  foreach ($all_domains as $domain) {
+    // If the domain is not the current domain, send the request.
+    if ($domain == $current_domain) {
+      $domain_path = domain_get_path($domain);
+      $call_urls[] = $domain_path . $callback_path;
+    }
+  }
+  return $call_urls;
+}
+
 /**
  * Implements hook_page_alter().
  */
@@ -82,5 +100,11 @@ function cgk_sso_page_alter(&$page) {
   // Check if the user needs to be logged in on all domains.
   if (!empty($user->data['cgk_sso']['status']) && $user->data['cgk_sso']['status'] == 'pending_login') {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
+    $cgk_sso_settings = array(
+      'uid' => $user->uid,
+      'token' => '',
+      'callback_urls' => array(_get_callback_urls())
+    );
+    drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
   }
 }
