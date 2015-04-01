@@ -22,9 +22,8 @@ function cgk_sso_menu() {
  * Implements hook_user_login().
  */
 function cgk_sso_user_login(&$edit, $account) {
-  // Create a token.
-  // Send the token request to all other domains to log them in.
-  //send_login($account);
+  // Generate a line in the sso table to be able to later check if the user
+  // needs to be logged in on all domains.
   global $user;
   $sso_record = new stdClass();
   $sso_record->uid = $user->uid;
@@ -44,6 +43,20 @@ function cgk_sso_login($uid, $token) {
   drupal_session_regenerate();
   echo json_encode('ok');
   die;
+}
+
+function _generateAccessHeaders() {
+  $current_domain = domain_get_domain();
+  $all_domains = domain_domains();
+
+  foreach ($all_domains as $domain) {
+    // If the domain is not the current domain, the page header to allow the
+    // page request from is fellow domains.
+    if ($domain !== $current_domain) {
+      $domain_path = domain_get_path($domain);
+      drupal_add_http_header('Access-Control-Allow-Origin', $domain_path);
+    }
+  }
 }
 
 function _get_callback_urls() {
