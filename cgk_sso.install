@@ -14,11 +14,24 @@ function cgk_sso_schema() {
         'length' => 32,
         'not null' => TRUE,
         'default' => ''),
+      'created' => array(
+        'description' => 'Creationdate of the record.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'Change date of the record.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'indexes' => array(
-      'changed' => array('changed'),
-      'created' => array('created'),
+      'sso_changed' => array('changed'),
+      'sso_created' => array('created'),
     ),
+    'unique keys' => array(),
     'primary key' => array('id'),
   );
   return $schema;
