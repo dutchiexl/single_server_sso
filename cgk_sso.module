@@ -9,7 +9,7 @@
  */
 function cgk_sso_menu() {
   $items['cgk/sso/login/%uid/%token'] = array(
-    'page callback' => 'cgk_sso_login',
+    'page callback' => '_cgk_sso_login',
     'page_arguments' => array(2, 3),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
@@ -17,20 +17,27 @@ function cgk_sso_menu() {
   return $items;
 }
 
-
 /**
  * Implements hook_user_login().
  */
 function cgk_sso_user_login(&$edit, $account) {
-  // Generate a line in the sso table to be able to later check if the user
-  // needs to be logged in on all domains.
-  global $user;
+  // Make sure we come from the login form so this function is not triggered
+  // by automated logins.
+  if (!empty($edit['clicked_button'])) {
 
-  // @TODO: make the statusses fixed;
-  _set_login_status("pending_login");
+    // @TODO: make the statusses fixed;
+    // Generate a line in the sso table to be able to later check if the user
+    // needs to be logged in on all domains.
+    _set_login_status("pending_login");
+  }
 }
 
-function cgk_sso_login($uid, $token) {
+/**
+ * AJAX callback for loging in a user.
+ * @param $uid
+ * @param $token
+ */
+function _cgk_sso_login($uid, $token) {
   global $user;
   $user = user_load($uid);
   user_login_finalize();
@@ -38,6 +45,10 @@ function cgk_sso_login($uid, $token) {
   die;
 }
 
+/**
+ * Generates the content access allow headers so that jquery can call the login
+ * function without getting blocked.
+ */
 function _generateAccessHeaders() {
   $current_domain = domain_get_domain();
   $all_domains = domain_domains();
@@ -52,6 +63,12 @@ function _generateAccessHeaders() {
   }
 }
 
+/**
+ * Returns an array of login urls for the domains that need to be automatically
+ * logged in.
+ *
+ * @return array
+ */
 function _get_callback_urls() {
   $callback_path = "cgk/sso/login";
   $current_domain = domain_get_domain();
@@ -88,6 +105,11 @@ function cgk_sso_page_alter(&$page) {
   }
 }
 
+/**
+ * Returns a cgk_sso login status object.
+ * @param $uid
+ * @return null
+ */
 function _get_sso_login_status($uid) {
   if ($uid == 0) {
     return NULL;
@@ -102,6 +124,10 @@ function _get_sso_login_status($uid) {
   }
 }
 
+/**
+ * Writes or updates a cgk_sso record status.
+ * @param $status The string value of the status that needs to be ser.
+ */
 function _set_login_status($status) {
   global $user;
   $login_status = _get_sso_login_status($user->uid);
@@ -115,9 +141,11 @@ function _set_login_status($status) {
     $primary_keys = "id";
     $sso_record->id = $login_status->id;
   }
+  else {
+    $sso_record->created = time();
+  }
   $sso_record->uid = $user->uid;
   $sso_record->status = $status;
-  $sso_record->created = time();
   $sso_record->changed = time();
   drupal_write_record('cgk_sso', $sso_record, $primary_keys);
 }
