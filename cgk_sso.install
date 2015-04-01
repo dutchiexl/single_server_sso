@@ -14,10 +14,16 @@ function cgk_sso_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'originator_id' => array(
+        'description' => "The ID of the domain the request originates from.",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'status' => array(
         'description' => t('The status of the SSO login flow.'),
         'type' => 'varchar',
-        'length' => 32,
+        'length' => 255,
         'not null' => TRUE,
         'default' => ''),
       'created' => array(

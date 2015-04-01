@@ -25,13 +25,9 @@ function cgk_sso_user_login(&$edit, $account) {
   // Generate a line in the sso table to be able to later check if the user
   // needs to be logged in on all domains.
   global $user;
-  $login_status = _get_sso_login_status($user->uid);
-  $sso_record = new stdClass();
-  $sso_record->uid = $user->uid;
-  $sso_record->status = "pending_sso_login";
-  $sso_record->created = time();
-  $sso_record->changed = time();
-  drupal_write_record('cgk_sso', $sso_record);
+
+  // @TODO: make the statusses fixed;
+  _set_login_status("pending_login");
 }
 
 function cgk_sso_login($uid, $token) {
@@ -80,7 +76,7 @@ function cgk_sso_page_alter(&$page) {
   global $user;
   // Check if the user needs to be logged in on all domains.
   $login_status = _get_sso_login_status($user->uid);
-  if ($login_status->status == "pending_login") {
+  if ($login_status !== NULL && $login_status->status == "pending_login") {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
     $cgk_sso_settings = array(
       'uid' => $user->uid,
@@ -88,14 +84,40 @@ function cgk_sso_page_alter(&$page) {
       'callback_urls' => array_values(_get_callback_urls())
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
-    user_save($user, array('cgk_sso' => 'login_triggered'), 'cgk-sso');
+    _set_login_status("logged_in");
   }
 }
 
 function _get_sso_login_status($uid) {
-  $record = db_select('cgk_sso')// table
-  ->condition('uid', $uid)// field & value
-  ->execute()// do it
-  ->fetch();
-  return $record;
+  if ($uid == 0) {
+    return NULL;
+  }
+  $records = db_select('cgk_sso', 'sso')// table
+  ->fields('sso', array('id', 'uid', 'status'))
+    ->condition('sso.uid', $uid, '=')
+    ->execute();
+  // Return a single record.
+  foreach ($records as $record) {
+    return $record;
+  }
+}
+
+function _set_login_status($status) {
+  global $user;
+  $login_status = _get_sso_login_status($user->uid);
+
+  // Create the record.
+  $sso_record = new stdClass();
+
+  // If a recorde exists set the primary key, so it is updated.
+  $primary_keys = array();
+  if ($login_status !== NULL) {
+    $primary_keys = "id";
+    $sso_record->id = $login_status->id;
+  }
+  $sso_record->uid = $user->uid;
+  $sso_record->status = $status;
+  $sso_record->created = time();
+  $sso_record->changed = time();
+  drupal_write_record('cgk_sso', $sso_record, $primary_keys);
 }
