@@ -1,0 +1,25 @@
+<?php
+function cgk_sso_schema() {
+  $schema['cgk_sso'] = array(
+    'description' => t('The base table for CGK SSO data.'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('The primary identifier for a node.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'status' => array(
+        'description' => t('The status of the SSO login flow.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''),
+    ),
+    'indexes' => array(
+      'changed' => array('changed'),
+      'created' => array('created'),
+    ),
+    'primary key' => array('id'),
+  );
+  return $schema;
+}
