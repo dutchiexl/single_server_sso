@@ -17,7 +17,9 @@ function cgk_sso_menu() {
 }
 
 function cgk_sso_user_presave(&$edit, $account, $category) {
-// Make sure that our form value 'mymodule_foo' is stored as 'mymodule_bar'.
+  if ($category !== 'cgk-sso') {
+    return;
+  }
   $edit['data']['cgk_sso']['status'] = 'pending_login';
 }
 
@@ -28,8 +30,10 @@ function cgk_sso_user_login(&$edit, $account) {
   // Create a token.
   // Send the token request to all other domains to log them in.
   //send_login($account);
-  user_save($account, array('cgk_sso' => 'pending_login'));
+  user_save($account, array('cgk_sso' => 'pending_login'), 'cgk-sso');
+  global $user;
   $sso_record = new stdClass();
+  $sso_record->uid = $user->uid;
   $sso_record->status = "pending_sso_login";
   $sso_record->created = time();
   $sso_record->changed = time();
@@ -76,7 +80,7 @@ function cgk_sso_login() {
 function cgk_sso_page_alter(&$page) {
   global $user;
   // Check if the user needs to be logged in on all domains.
-  if (!empty($user->sso_login) && $user->sso_login) {
+  if (!empty($user->data['cgk_sso']['status']) && $user->data['cgk_sso']['status'] == 'pending_login') {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
   }
 }

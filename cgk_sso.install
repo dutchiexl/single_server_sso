@@ -8,6 +8,12 @@ function cgk_sso_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE),
+      'uid' => array(
+        'description' => "User's {users}.uid.",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'status' => array(
         'description' => t('The status of the SSO login flow.'),
         'type' => 'varchar',
