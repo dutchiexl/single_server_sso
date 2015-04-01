@@ -67,12 +67,13 @@ function send_login($account) {
 }
 
 function cgk_sso_login($uid, $token) {
-  watchdog('Cegeka SSO', "User id: " + $uid + "token: " + $token);
-//  global $user;
-//  $user = user_load(1);
-//
-//  $login_array = array('name' => $username);
-//  user_login_finalize($login_array);
+  drupal_add_http_header('Access-Control-Allow-Origin', "*");
+  watchdog('Cegeka SSO', "User id: " . $uid . " | Token: " . $token);
+  global $user;
+  $user = user_load($uid);
+  $login_array = array('name' => 'Admin');
+  user_login_finalize($login_array);
+  drupal_session_regenerate();
 }
 
 function _get_callback_urls() {
@@ -84,7 +85,7 @@ function _get_callback_urls() {
   $call_urls = array();
   foreach ($all_domains as $domain) {
     // If the domain is not the current domain, send the request.
-    if ($domain == $current_domain) {
+    if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
       $call_urls[] = $domain_path . $callback_path;
     }
@@ -103,8 +104,10 @@ function cgk_sso_page_alter(&$page) {
     $cgk_sso_settings = array(
       'uid' => $user->uid,
       'token' => '',
-      'callback_urls' => array(_get_callback_urls())
+      'callback_urls' => array_values(_get_callback_urls())
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
+    unset($user->data['cgk_sso']['status']);
+    user_save($user);
   }
 }
