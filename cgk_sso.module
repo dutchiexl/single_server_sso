@@ -16,6 +16,11 @@ function cgk_sso_menu() {
   return $items;
 }
 
+function cgk_sso_user_presave(&$edit, $account, $category) {
+// Make sure that our form value 'mymodule_foo' is stored as 'mymodule_bar'.
+  $edit['data']['cgk_sso']['status'] = 'pending_login';
+}
+
 /**
  * Implements hook_user_login().
  */
@@ -23,7 +28,7 @@ function cgk_sso_user_login(&$edit, $account) {
   // Create a token.
   // Send the token request to all other domains to log them in.
   //send_login($account);
-  global $user;
+  user_save($account, array('cgk_sso' => 'pending_login'));
   $sso_record = new stdClass();
   $sso_record->status = "pending_sso_login";
   $sso_record->created = time();
