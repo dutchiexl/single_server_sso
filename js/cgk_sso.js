@@ -3,7 +3,7 @@
         attach: function (context, settings) {
             $.each(Drupal.settings.cgk_sso.callback_urls, function (key, callback_url) {
                 $.ajax({
-                    url: callback_url + "/" + Drupal.settings.cgk_sso.uid + "/4",
+                    url: callback_url,
                     type: "GET",
                     dataType: 'jsonp'
                 });

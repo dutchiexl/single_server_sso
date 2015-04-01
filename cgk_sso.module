@@ -10,7 +10,13 @@
 function cgk_sso_menu() {
   $items['cgk/sso/login/%uid/%token'] = array(
     'page callback' => '_cgk_sso_login',
-    'page_arguments' => array(2, 3),
+    'page_arguments' => array(3, 4),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK
+  );
+  $items['cgk/sso/logout/%token'] = array(
+    'page callback' => '_cgk_sso_logout',
+    'page_arguments' => array(3),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
@@ -33,6 +39,17 @@ function cgk_sso_user_login(&$edit, $account) {
 }
 
 /**
+ * Implements hook_user_logout().
+ */
+function cgk_sso_user_logout($account) {
+  global $user;
+  $login_status = _get_sso_login_status($user->uid);
+  if ($login_status !== NULL && $login_status->status == "pending_logout") {
+    _set_login_status("pending_logout");
+  }
+}
+
+/**
  * AJAX callback for loging in a user.
  * @param $uid
  * @param $token
@@ -41,6 +58,12 @@ function _cgk_sso_login($uid, $token) {
   global $user;
   $user = user_load($uid);
   user_login_finalize();
+  echo json_encode('ok');
+  die;
+}
+
+function _cgk_sso_logout() {
+  user_logout();
   echo json_encode('ok');
   die;
 }
@@ -69,8 +92,9 @@ function _generateAccessHeaders() {
  *
  * @return array
  */
-function _get_callback_urls() {
-  $callback_path = "cgk/sso/login";
+function _get_callback_urls($action) {
+  global $user;
+  $callback_path = "cgk/sso/" . $action;
   $current_domain = domain_get_domain();
   $all_domains = domain_domains();
 
@@ -80,7 +104,12 @@ function _get_callback_urls() {
     // If the domain is not the current domain, send the request.
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
-      $call_urls[] = $domain_path . $callback_path;
+      if ($action == "login") {
+        $call_urls[] = $domain_path . $callback_path  "/" . $user->uid . "/4";
+        }
+      elseif ($action == "logout") {
+        $call_urls[] = $domain_path . $callback_path  "/" . $user->uid;
+      }
     }
   }
   return $call_urls;
@@ -98,10 +127,22 @@ function cgk_sso_page_alter(&$page) {
     $cgk_sso_settings = array(
       'uid' => $user->uid,
       'token' => '',
-      'callback_urls' => array_values(_get_callback_urls())
+      'action' => 'login',
+      'callback_urls' => array_values(_get_callback_urls("login"))
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
     _set_login_status("logged_in");
+  }
+  elseif ($login_status !== NULL && $login_status->status == "pending_logout") {
+    drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
+    $cgk_sso_settings = array(
+      'uid' => $user->uid,
+      'token' => '',
+      'action' => 'logout',
+      'callback_urls' => array_values(_get_callback_urls("logout"))
+    );
+    drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
+    _set_login_status("logged_out");
   }
 }
 
@@ -126,7 +167,7 @@ function _get_sso_login_status($uid) {
 
 /**
  * Writes or updates a cgk_sso record status.
- * @param $status The string value of the status that needs to be ser.
+ * @param $status
  */
 function _set_login_status($status) {
   global $user;
