@@ -25,6 +25,7 @@ function cgk_sso_user_login(&$edit, $account) {
   // Generate a line in the sso table to be able to later check if the user
   // needs to be logged in on all domains.
   global $user;
+  $login_status = _get_sso_login_status($user->uid);
   $sso_record = new stdClass();
   $sso_record->uid = $user->uid;
   $sso_record->status = "pending_sso_login";
@@ -78,7 +79,8 @@ function _get_callback_urls() {
 function cgk_sso_page_alter(&$page) {
   global $user;
   // Check if the user needs to be logged in on all domains.
-  if (!empty($user->data['cgk_sso']['status']) && $user->data['cgk_sso']['status'] == 'pending_login') {
+  $login_status = _get_sso_login_status($user->uid);
+  if ($login_status->status == "pending_login") {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
     $cgk_sso_settings = array(
       'uid' => $user->uid,
@@ -88,4 +90,12 @@ function cgk_sso_page_alter(&$page) {
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
     user_save($user, array('cgk_sso' => 'login_triggered'), 'cgk-sso');
   }
+}
+
+function _get_sso_login_status($uid) {
+  $record = db_select('cgk_sso')// table
+  ->condition('uid', $uid)// field & value
+  ->execute()// do it
+  ->fetch();
+  return $record;
 }
