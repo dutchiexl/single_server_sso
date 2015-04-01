@@ -66,16 +66,16 @@ function send_login($account) {
   $request_handler->process($call_urls, $callback);
 }
 
-function cgk_sso_login() {
-  watchdog('Cegeka SSO', 'it ran');
-  global $user;
-  $user = user_load(1);
-
-  $login_array = array('name' => $username);
-  user_login_finalize($login_array);
+function cgk_sso_login($uid, $token) {
+  watchdog('Cegeka SSO', "User id: " + $uid + "token: " + $token);
+//  global $user;
+//  $user = user_load(1);
+//
+//  $login_array = array('name' => $username);
+//  user_login_finalize($login_array);
 }
 
-function _get_callback_urls(){
+function _get_callback_urls() {
   $callback_path = "cgk/sso/login";
   $current_domain = domain_get_domain();
   $all_domains = domain_domains();
