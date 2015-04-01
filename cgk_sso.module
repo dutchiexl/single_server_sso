@@ -22,8 +22,9 @@ function cgk_sso_menu() {
 function cgk_sso_user_login(&$edit, $account) {
   // Create a token.
   // Send the token request to all other domains to log them in.
-  drupal_add_js(drupal_get_path('module', 'cgk_sso') .'/js/cgk_sso.js');
   //send_login($account);
+  global $user;
+  $user->sso_login = TRUE;
 }
 
 function send_login($account) {
@@ -56,6 +57,17 @@ function cgk_sso_login() {
   global $user;
   $user = user_load(1);
 
-  $login_array = array ('name' => $username);
+  $login_array = array('name' => $username);
   user_login_finalize($login_array);
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function cgk_sso_page_alter(&$page) {
+  global $user;
+  // Check if the user needs to be logged in on all domains.
+  if (!empty($user->sso_login) && $user->sso_login) {
+    drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
+  }
 }
