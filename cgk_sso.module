@@ -105,10 +105,10 @@ function _get_callback_urls($action) {
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
       if ($action == "login") {
-        $call_urls[] = $domain_path . $callback_path  "/" . $user->uid . "/4";
-        }
+        $call_urls[] = $domain_path . $callback_path . "/" . $user->uid . "/4";
+      }
       elseif ($action == "logout") {
-        $call_urls[] = $domain_path . $callback_path  "/" . $user->uid;
+        $call_urls[] = $domain_path . $callback_path . "/" . $user->uid;
       }
     }
   }
