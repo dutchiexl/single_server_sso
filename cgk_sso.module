@@ -17,12 +17,6 @@ function cgk_sso_menu() {
   return $items;
 }
 
-function cgk_sso_user_presave(&$edit, $account, $category) {
-  if ($category !== 'cgk-sso') {
-    return;
-  }
-  $edit['data']['cgk_sso']['status'] = 'pending_login';
-}
 
 /**
  * Implements hook_user_login().
@@ -31,7 +25,6 @@ function cgk_sso_user_login(&$edit, $account) {
   // Create a token.
   // Send the token request to all other domains to log them in.
   //send_login($account);
-  user_save($account, array('cgk_sso' => 'pending_login'), 'cgk-sso');
   global $user;
   $sso_record = new stdClass();
   $sso_record->uid = $user->uid;
@@ -41,39 +34,16 @@ function cgk_sso_user_login(&$edit, $account) {
   drupal_write_record('cgk_sso', $sso_record);
 }
 
-function send_login($account) {
-  // Load the asynchronous library.
-  module_load_include('inc', 'cgk_sso', 'Helpers/AsyncRequest');
-
-  $callback_path = "cgk/sso/login";
-  $current_domain = domain_get_domain();
-  $all_domains = domain_domains();
-
-  // The login urls to the other domains.
-  $call_urls = array();
-  foreach ($all_domains as $domain) {
-    // If the domain is not the current domain, send the request.
-    if ($domain == $current_domain) {
-      $domain_path = domain_get_path($domain);
-      $call_urls[] = $domain_path . $callback_path;
-    }
-  }
-
-  // Make the requests to the other domains.
-  $request_handler = new AsyncRequest();
-  $callback = function ($data, $info) {
-  };
-  $request_handler->process($call_urls, $callback);
-}
-
 function cgk_sso_login($uid, $token) {
   drupal_add_http_header('Access-Control-Allow-Origin', "*");
   watchdog('Cegeka SSO', "User id: " . $uid . " | Token: " . $token);
   global $user;
   $user = user_load($uid);
-  $login_array = array('name' => 'Admin');
+  $login_array = array('name' => 'Admin', 'pass' => 'dev');
   user_login_finalize($login_array);
   drupal_session_regenerate();
+  echo json_encode('ok');
+  die;
 }
 
 function _get_callback_urls() {
@@ -107,7 +77,6 @@ function cgk_sso_page_alter(&$page) {
       'callback_urls' => array_values(_get_callback_urls())
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
-    unset($user->data['cgk_sso']['status']);
-    user_save($user);
+    user_save($user, array('cgk_sso' => 'login_triggered'), 'cgk-sso');
   }
 }
