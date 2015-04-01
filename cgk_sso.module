@@ -37,7 +37,7 @@ function send_login($account) {
   $call_urls = array();
   foreach ($all_domains as $domain) {
     // If the domain is not the current domain, send the request.
-    if ($domain !== $current_domain) {
+    if ($domain == $current_domain) {
       $domain_path = domain_get_path($domain);
       $call_urls[] = $domain_path . $callback_path;
     }
@@ -52,4 +52,9 @@ function send_login($account) {
 
 function cgk_sso_login() {
   watchdog('Cegeka SSO', 'it ran');
+  global $user;
+  $user = user_load(1);
+
+  $login_array = array ('name' => $username);
+  user_login_finalize($login_array);
 }
