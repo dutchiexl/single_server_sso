@@ -44,9 +44,10 @@ function cgk_sso_user_login(&$edit, $account) {
 function cgk_sso_user_logout($account) {
   global $user;
   $login_status = _get_sso_login_status($user->uid);
-  if ($login_status !== NULL && $login_status->status == "pending_logout") {
+  if ($login_status !== NULL && $login_status->status !== "pending_logout") {
     _set_login_status("pending_logout");
   }
+  $user->sso_logout = true;
 }
 
 /**
