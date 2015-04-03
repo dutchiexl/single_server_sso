@@ -8,15 +8,15 @@
  * Implements hook_menu().
  */
 function cgk_sso_menu() {
-  $items['cgk/sso/login/%uid/%token'] = array(
+  $items['cgk/sso/login/%/%'] = array(
     'page callback' => '_cgk_sso_login',
     'page_arguments' => array(3, 4),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
-  $items['cgk/sso/logout/%token'] = array(
+  $items['cgk/sso/logout'] = array(
     'page callback' => '_cgk_sso_logout',
-    'page_arguments' => array(3),
+    'page_arguments' => array(),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
@@ -43,11 +43,15 @@ function cgk_sso_user_login(&$edit, $account) {
  */
 function cgk_sso_user_logout($account) {
   global $user;
+  // Get the login status for the current user.
   $login_status = _get_sso_login_status($user->uid);
-  if ($login_status !== NULL && $login_status->status !== "pending_logout") {
+
+  // Get the current domain to check if this is the originator.
+  $current_domain = domain_get_domain();
+
+  if ($login_status !== NULL && $login_status->status !== "pending_logout" && $login_status->originator_id = $current_domain) {
     _set_login_status("pending_logout");
   }
-  $user->sso_logout = true;
 }
 
 /**
@@ -178,6 +182,8 @@ function _get_sso_login_status($uid) {
 function _set_login_status($status) {
   global $user;
   $login_status = _get_sso_login_status($user->uid);
+  // Get the current domain to set the originator.
+  $current_domain = domain_get_domain();
 
   // Create the record.
   $sso_record = new stdClass();
@@ -192,12 +198,8 @@ function _set_login_status($status) {
     $sso_record->created = time();
   }
   $sso_record->uid = $user->uid;
+  $sso_record->originator_id = $current_domain;
   $sso_record->status = $status;
   $sso_record->changed = time();
   drupal_write_record('cgk_sso', $sso_record, $primary_keys);
-
-  // Store the status in the Session
-  module_load_include('inc', 'cgk_sso', 'Helpers/SsoSession');
-  $sso_session = new SsoSession();
-  $sso_session->setStatus('pending_logout');
 }
