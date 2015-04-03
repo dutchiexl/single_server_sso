@@ -120,6 +120,10 @@ function _get_callback_urls($action) {
  */
 function cgk_sso_page_alter(&$page) {
   global $user;
+  // Get the status in the Session
+  module_load_include('inc', 'cgk_sso', 'Helpers/SsoSession');
+  $sso_session = new SsoSession();
+  $logout_status = $sso_session->getStatus();
   // Check if the user needs to be logged in on all domains.
   $login_status = _get_sso_login_status($user->uid);
   if ($login_status !== NULL && $login_status->status == "pending_login") {
@@ -133,7 +137,8 @@ function cgk_sso_page_alter(&$page) {
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
     _set_login_status("logged_in");
   }
-  elseif ($login_status !== NULL && $login_status->status == "pending_logout") {
+
+  elseif ($logout_status !== NULL && $logout_status == "pending_logout") {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
     $cgk_sso_settings = array(
       'uid' => $user->uid,
@@ -189,4 +194,9 @@ function _set_login_status($status) {
   $sso_record->status = $status;
   $sso_record->changed = time();
   drupal_write_record('cgk_sso', $sso_record, $primary_keys);
+
+  // Store the status in the Session
+  module_load_include('inc', 'cgk_sso', 'Helpers/SsoSession');
+  $sso_session = new SsoSession();
+  $sso_session->setStatus('pending_logout');
 }
