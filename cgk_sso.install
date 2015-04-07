@@ -32,6 +32,12 @@ function cgk_sso_schema() {
         'length' => 255,
         'not null' => TRUE,
         'default' => ''),
+      'domains' => array(
+        'description' => t('The domains on which to execute'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''),
       'created' => array(
         'description' => 'Creationdate of the record.',
         'type' => 'int',

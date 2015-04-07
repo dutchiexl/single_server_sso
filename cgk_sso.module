@@ -55,10 +55,15 @@ function cgk_sso_user_logout($account) {
  */
 function _cgk_sso_login($uid, $token) {
   global $user;
-  $user = user_load($uid);
-  user_login_finalize();
-  echo json_encode('ok');
-  die;
+  if (_consume_token($uid, $token)) {
+    $user = user_load($uid);
+    user_login_finalize();
+    echo json_encode('ok');
+    die;
+  }
+  else {
+    watchdog('CGK SSO', "someone with ip {$_SERVER[REMOTE_ADDR]} tried to log in with id {$uid} using the SSO without a valid token. token: {$token}");
+  }
 }
 
 /**
@@ -189,4 +194,13 @@ function _generateToken() {
   global $user;
   $token = md5(uniqid($user->uid, TRUE));
   return $token;
+}
+
+function _consume_token($uid, $token) {
+  $login_status = _get_sso_login_status($uid);
+  if ($login_status->token == $token) {
+    // Remove the domain from the array. If it is the last one, destroy the token.
+    return TRUE;
+  }
+  return FALSE;
 }
