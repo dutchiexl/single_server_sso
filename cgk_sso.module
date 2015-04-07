@@ -98,7 +98,7 @@ function _generateAccessHeaders() {
  *
  * @return array
  */
-function _get_callback_urls($action) {
+function _get_callback_urls($action, $token) {
   global $user;
   $callback_path = "cgk/sso/" . $action;
   $current_domain = domain_get_domain();
@@ -110,12 +110,7 @@ function _get_callback_urls($action) {
     // If the domain is not the current domain, send the request.
     if ($domain !== $current_domain) {
       $domain_path = domain_get_path($domain);
-      if ($action == "login") {
-        $call_urls[] = $domain_path . $callback_path . "/" . $user->uid . "/4";
-      }
-      elseif ($action == "logout") {
-        $call_urls[] = $domain_path . $callback_path . "/" . $user->uid;
-      }
+      $call_urls[] = $domain_path . $callback_path . "/" . $user->uid . "/" . $token;
     }
   }
   return $call_urls;
@@ -132,9 +127,9 @@ function cgk_sso_page_alter(&$page) {
     drupal_add_js(drupal_get_path('module', 'cgk_sso') . '/js/cgk_sso.js');
     $cgk_sso_settings = array(
       'uid' => $user->uid,
-      'token' => '',
+      'token' => $login_status->token,
       'action' => 'login',
-      'callback_urls' => array_values(_get_callback_urls("login"))
+      'callback_urls' => array_values(_get_callback_urls("login", $login_status->token))
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
     _set_login_status("logged_in");
@@ -183,8 +178,15 @@ function _set_login_status($status) {
     $sso_record->created = time();
   }
   $sso_record->uid = $user->uid;
+  $sso_record->token = _generateToken();
   $sso_record->originator_id = $current_domain;
   $sso_record->status = $status;
   $sso_record->changed = time();
   drupal_write_record('cgk_sso', $sso_record, $primary_keys);
+}
+
+function _generateToken() {
+  global $user;
+  $token = md5(uniqid($user->uid, TRUE));
+  return $token;
 }

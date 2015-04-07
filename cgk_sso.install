@@ -26,6 +26,12 @@ function cgk_sso_schema() {
         'length' => 255,
         'not null' => TRUE,
         'default' => ''),
+      'token' => array(
+        'description' => t('A unique single use token.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''),
       'created' => array(
         'description' => 'Creationdate of the record.',
         'type' => 'int',
