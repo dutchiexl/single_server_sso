@@ -63,6 +63,9 @@ function _cgk_sso_login($uid, $token) {
   die;
 }
 
+/**
+ * AJAX callback to log out User.
+ */
 function _cgk_sso_logout() {
   user_logout();
   echo json_encode('ok');
