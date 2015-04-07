@@ -137,7 +137,7 @@ function cgk_sso_page_alter(&$page) {
       'callback_urls' => array_values(_get_callback_urls("login", $login_status->token))
     );
     drupal_add_js(array('cgk_sso' => $cgk_sso_settings), 'setting');
-    _set_login_status("logged_in");
+    _set_login_status("login_request_sent");
   }
 }
 
@@ -182,6 +182,12 @@ function _set_login_status($status) {
   else {
     $sso_record->created = time();
   }
+
+  // If the status is beeing set to sent, add the domains on which the command
+  // needs to be executed.
+  if ($status == "login_request_sent") {
+    $sso_record->domains = json_encode(_get_other_domains());
+  }
   $sso_record->uid = $user->uid;
   $sso_record->token = _generateToken();
   $sso_record->originator_id = $current_domain;
@@ -196,11 +202,39 @@ function _generateToken() {
   return $token;
 }
 
+/**
+ * Returns an array of domains which are not the current domain.
+ * @return array
+ */
+function _get_other_domains() {
+  $domain_ids = array();
+  $current_domain = domain_get_domain();
+  $all_domains = domain_domains();
+
+  // The login urls to the other domains.
+  foreach ($all_domains as $domain) {
+    // If the domain is not the current domain, send the request.
+    if ($domain !== $current_domain) {
+      $domain_ids[] = $domain;
+    }
+  }
+  return $domain_ids;
+}
+
 function _consume_token($uid, $token) {
   $login_status = _get_sso_login_status($uid);
   if ($login_status->token == $token) {
-    // Remove the domain from the array. If it is the last one, destroy the token.
-    return TRUE;
+    // Check if this domain is in the to be executed domain array.
+    $domains = json_decode($login_status->domains);
+
+    $current_domain = domain_get_domain();
+
+    if (in_array($current_domain, $domains)) {
+      // Remove the domain from the array. If it is the last one, destroy the token.
+      $login_status->changed = time();
+      drupal_write_record('cgk_sso', $login_status, "id");
+      return TRUE;
+    }
   }
   return FALSE;
 }
