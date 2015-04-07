@@ -43,13 +43,9 @@ function cgk_sso_user_login(&$edit, $account) {
  */
 function cgk_sso_user_logout($account) {
   global $user;
-  // Get the login status for the current user.
-  $login_status = _get_sso_login_status($user->uid);
-
   // Delete all the sesions for this user.
   _cgk_sso_delete_all_sessions($user->uid);
   _set_login_status("logged_out");
-
 }
 
 /**
@@ -65,23 +61,17 @@ function _cgk_sso_login($uid, $token) {
   die;
 }
 
-<<<<<<< HEAD
 /**
- * AJAX callback to log out User.
+ * Deletes all sessions for a ginven user account.
+ * @param $uid
  */
-function _cgk_sso_logout() {
-  user_logout();
-  echo json_encode('ok');
-  die;
-=======
 function _cgk_sso_delete_all_sessions($uid) {
   // Create an object of type SelectQuery
   $query = db_delete('sessions');
 
-// Add extra detail to this query object: a condition, fields and a range
+  // Add extra detail to this query object: a condition, fields and a range
   $query->condition('uid', $uid);
   $query->execute();
->>>>>>> f30d181855bd05ce60c5a75154245f260a6ebb40
 }
 
 /**
