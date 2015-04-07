@@ -10,13 +10,13 @@
 function cgk_sso_menu() {
   $items['cgk/sso/login/%/%'] = array(
     'page callback' => '_cgk_sso_login',
-    'page_arguments' => array(3, 4),
+    'page arguments' => array(3, 4),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
   $items['cgk/sso/logout'] = array(
     'page callback' => '_cgk_sso_logout',
-    'page_arguments' => array(),
+    'page arguments' => array(),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK
   );
@@ -62,7 +62,9 @@ function _cgk_sso_login($uid, $token) {
     die;
   }
   else {
-    watchdog('CGK SSO', "someone with ip {$_SERVER[REMOTE_ADDR]} tried to log in with id {$uid} using the SSO without a valid token. token: {$token}");
+    watchdog('CGK SSO', "someone with ip {$_SERVER['REMOTE_ADDR']} tried to log in with id {$uid} using the SSO without a valid token. token: {$token}");
+    echo json_encode('nok');
+    die;
   }
 }
 
@@ -151,7 +153,7 @@ function _get_sso_login_status($uid) {
     return NULL;
   }
   $records = db_select('cgk_sso', 'sso')// table
-  ->fields('sso', array('id', 'uid', 'status'))
+  ->fields('sso', array('id', 'uid', 'status', 'token', 'domains'))
     ->condition('sso.uid', $uid, '=')
     ->execute();
   // Return a single record.
@@ -183,13 +185,24 @@ function _set_login_status($status) {
     $sso_record->created = time();
   }
 
+  // If the status is being set to pending_login, generate a token
+  if ($status == "pending_login") {
+    $sso_record->token = _generateToken();
+  }
+
   // If the status is beeing set to sent, add the domains on which the command
   // needs to be executed.
   if ($status == "login_request_sent") {
     $sso_record->domains = json_encode(_get_other_domains());
   }
+
+  // If the status is being set to logged out. Destroy the token
+  if ($status == "logged_out") {
+    $sso_record->domains = "";
+    $sso_record->token = "";
+  }
   $sso_record->uid = $user->uid;
-  $sso_record->token = _generateToken();
+
   $sso_record->originator_id = $current_domain;
   $sso_record->status = $status;
   $sso_record->changed = time();
@@ -215,7 +228,7 @@ function _get_other_domains() {
   foreach ($all_domains as $domain) {
     // If the domain is not the current domain, send the request.
     if ($domain !== $current_domain) {
-      $domain_ids[] = $domain;
+      $domain_ids[] = $domain['domain_id'];
     }
   }
   return $domain_ids;
@@ -223,15 +236,24 @@ function _get_other_domains() {
 
 function _consume_token($uid, $token) {
   $login_status = _get_sso_login_status($uid);
-  if ($login_status->token == $token) {
+  if (!empty($login_status->token) && $login_status->token == $token) {
     // Check if this domain is in the to be executed domain array.
     $domains = json_decode($login_status->domains);
 
     $current_domain = domain_get_domain();
 
-    if (in_array($current_domain, $domains)) {
-      // Remove the domain from the array. If it is the last one, destroy the token.
+    if (in_array($current_domain['domain_id'], $domains)) {
+      // Remove the domain from the array.
+      $domains = array_diff((array) $domains, array($current_domain['domain_id']));
+      $login_status->domains = json_encode(array_values($domains));
       $login_status->changed = time();
+
+      // If it is the last one, destroy the token.
+      if (empty($domains)) {
+        $login_status->status = "logged_in";
+        $login_status->domains = NULL;
+        $login_status->token = NULL;
+      }
       drupal_write_record('cgk_sso', $login_status, "id");
       return TRUE;
     }
